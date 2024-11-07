@@ -47,8 +47,8 @@ fn main() {
     let flags = Flags::MIME_TYPE;
     let cookie = Cookie::open(flags);
     let database = &Default::default();
-    let cookie = cookie.expect("Fehler").load(database);
-    let m_type = cookie.expect("Fehler").file(&config_file);
+    let cookie = cookie.expect("Error loading database").load(database);
+    let m_type = cookie.expect("Error reading file").file(&config_file);
     if m_type.unwrap() != "application/json" {
         error!(target: "Idlemail", "This is no json file");
         exit(1);
