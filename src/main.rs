@@ -7,7 +7,22 @@ mod sources;
 use log::{debug, error, info};
 use signal::{trap::Trap, Signal};
 use std::time::{Duration, Instant};
+use magic::Cookie;
+use magic::cookie::Flags;
+use clap::Parser;
+use std::process::exit;
 
+#[derive(Parser)]
+#[command(author,version, about, long_about = None)]
+#[command(
+    help_template = "{about-section}\n{author-with-newline} \n{usage-heading}  {usage} \n\n{all-args} {tab}"
+)]
+
+struct Cli {
+    /// Path to config file
+    #[arg(short = 'c', long, value_name = "config",required=true,)]
+    config: Option<String>,
+}
 fn init_logging() {
     let mut log_builder = pretty_env_logger::formatted_builder();
 
@@ -24,9 +39,21 @@ fn init_logging() {
 fn main() {
     init_logging();
 
-    // dirty hack to read the config-file name from first argument for now
-    let config_file = std::env::args().skip(1).take(1).next().unwrap();
+    // commandline parsing
+    let cli = Cli::parse();
+    let config_file = cli.config.unwrap();
 
+    // check if config file is a json file
+    let flags = Flags::MIME_TYPE;
+    let cookie = Cookie::open(flags);
+    let database = &Default::default();
+    let cookie = cookie.expect("Fehler").load(database);
+    let m_type = cookie.expect("Fehler").file(&config_file);
+    if m_type.unwrap() != "application/json" {
+        error!(target: "Idlemail", "This is no json file");
+        exit(1);
+    }
+    
     info!(target: "Idlemail", "Parsing configuration file");
     let config = match config::ConfigContainer::from_file(&config_file) {
         Ok(config) => config,
